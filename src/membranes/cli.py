@@ -23,6 +23,7 @@ from pathlib import Path
 def cmd_scan(args):
     """Scan content for threats."""
     from .scanner import Scanner
+    from .threat_logger import ThreatLogger
     
     scanner = Scanner(
         patterns_path=args.patterns,
@@ -42,6 +43,13 @@ def cmd_scan(args):
         sys.exit(1)
     
     result = scanner.scan(content, include_sanitized=args.sanitize)
+    
+    # Log threats if detected (unless --no-log)
+    if not result.is_safe and not getattr(args, 'no_log', False):
+        logger = ThreatLogger(contribute=getattr(args, 'contribute', False))
+        entry = logger.log(result, raw_content=content)
+        if not args.json:
+            print(f"   📝 Logged as {entry.short_hash}", file=sys.stderr)
     
     if args.json:
         print(result.to_json())
@@ -183,6 +191,79 @@ def cmd_patterns(args):
                 print(f"   {severity_emoji} {p['name']}: {p.get('description', 'No description')[:60]}")
 
 
+def cmd_threats(args):
+    """View and manage the threat intelligence log."""
+    from .threat_logger import ThreatLogger
+    
+    logger = ThreatLogger(contribute=args.contribute)
+    
+    if args.action == "stats":
+        stats = logger.get_stats(days=args.days)
+        
+        if args.json:
+            print(json.dumps(stats, indent=2))
+        else:
+            print(f"🛡️ membranes Threat Intelligence")
+            print(f"   Last {stats['days']} days | {stats['total']} threats logged")
+            print(f"   Unique payloads: {stats.get('unique_payloads', 0)}")
+            print()
+            
+            if stats['total'] > 0:
+                print("   By Severity:")
+                for sev, count in stats.get('by_severity', {}).items():
+                    emoji = {"low": "🟡", "medium": "🟠", "high": "🔴", "critical": "💀"}.get(sev, "⚪")
+                    print(f"      {emoji} {sev}: {count}")
+                
+                print("\n   By Category:")
+                for cat, count in stats.get('by_category', {}).items():
+                    print(f"      📁 {cat}: {count}")
+                
+                print("\n   Top Threats:")
+                for name, count in list(stats.get('top_threats', {}).items())[:5]:
+                    print(f"      • {name}: {count}")
+                
+                print("\n   Obfuscation Methods:")
+                for method, count in stats.get('by_obfuscation', {}).items():
+                    print(f"      🔍 {method}: {count}")
+    
+    elif args.action == "list":
+        entries = list(logger.get_entries(
+            days=args.days,
+            min_severity=args.severity,
+            category=args.category
+        ))
+        
+        if args.json:
+            print(json.dumps([e.to_dict() for e in entries], indent=2))
+        else:
+            if not entries:
+                print("No threats logged in the specified time period.")
+            else:
+                print(f"🛡️ Threat Log ({len(entries)} entries)")
+                print("-" * 60)
+                for entry in entries[:args.limit]:
+                    print(entry.summary())
+    
+    elif args.action == "feed":
+        feed = logger.export_feed(format=args.format, days=args.days)
+        print(feed)
+    
+    elif args.action == "clear":
+        if not args.force:
+            confirm = input(f"Clear all threat logs? This cannot be undone. [y/N] ")
+            if confirm.lower() != 'y':
+                print("Aborted.")
+                return
+        
+        import shutil
+        if logger.log_dir.exists():
+            for f in logger.log_dir.glob("threats-*.jsonl"):
+                f.unlink()
+            print("✅ Threat logs cleared.")
+        else:
+            print("No logs to clear.")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="membranes",
@@ -200,7 +281,7 @@ Learn more: https://github.com/membranes/membranes
         """
     )
     
-    parser.add_argument("--version", action="version", version="membranes 0.1.0")
+    parser.add_argument("--version", action="version", version="membranes 0.2.0")
     
     subparsers = parser.add_subparsers(dest="command", help="Commands")
     
@@ -214,6 +295,9 @@ Learn more: https://github.com/membranes/membranes
     scan_parser.add_argument("--severity", default="low", choices=["low", "medium", "high", "critical"],
                             help="Minimum severity to report (default: low)")
     scan_parser.add_argument("--patterns", "-p", help="Custom patterns YAML file")
+    scan_parser.add_argument("--no-log", action="store_true", help="Don't log detected threats")
+    scan_parser.add_argument("--contribute", action="store_true", 
+                            help="Share anonymized threat data with the network")
     scan_parser.set_defaults(func=cmd_scan)
     
     # Sanitize command
@@ -241,6 +325,28 @@ Learn more: https://github.com/membranes/membranes
     patterns_parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
     patterns_parser.add_argument("--patterns", "-p", help="Custom patterns YAML file")
     patterns_parser.set_defaults(func=cmd_patterns)
+    
+    # Threats command (threat intelligence)
+    threats_parser = subparsers.add_parser("threats", help="View threat intelligence log")
+    threats_parser.add_argument("action", nargs="?", default="stats",
+                               choices=["stats", "list", "feed", "clear"],
+                               help="Action: stats (default), list, feed, clear")
+    threats_parser.add_argument("--days", "-d", type=int, default=7,
+                               help="Number of days to include (default: 7)")
+    threats_parser.add_argument("--severity", "-s",
+                               choices=["low", "medium", "high", "critical"],
+                               help="Filter by minimum severity")
+    threats_parser.add_argument("--category", "-c", help="Filter by category")
+    threats_parser.add_argument("--limit", "-l", type=int, default=50,
+                               help="Max entries to show (default: 50)")
+    threats_parser.add_argument("--format", default="json", choices=["json", "rss"],
+                               help="Feed format (default: json)")
+    threats_parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
+    threats_parser.add_argument("--contribute", action="store_true",
+                               help="Opt-in to share anonymized data with threat network")
+    threats_parser.add_argument("--force", "-f", action="store_true",
+                               help="Skip confirmation for destructive actions")
+    threats_parser.set_defaults(func=cmd_threats)
     
     args = parser.parse_args()
     

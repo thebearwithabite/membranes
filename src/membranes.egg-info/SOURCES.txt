@@ -5,6 +5,7 @@ src/membranes/__init__.py
 src/membranes/cli.py
 src/membranes/sanitizer.py
 src/membranes/scanner.py
+src/membranes/threat_logger.py
 src/membranes.egg-info/PKG-INFO
 src/membranes.egg-info/SOURCES.txt
 src/membranes.egg-info/dependency_links.txt

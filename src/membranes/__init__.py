@@ -21,10 +21,14 @@ Usage:
 MIT License - https://github.com/membranes/membranes
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Cosmo & Ryan"
 
 from .scanner import Scanner, ScanResult, Threat
 from .sanitizer import Sanitizer
+from .threat_logger import ThreatLogger, ThreatEntry, log_threat, get_logger
 
-__all__ = ["Scanner", "ScanResult", "Threat", "Sanitizer"]
+__all__ = [
+    "Scanner", "ScanResult", "Threat", "Sanitizer",
+    "ThreatLogger", "ThreatEntry", "log_threat", "get_logger"
+]
