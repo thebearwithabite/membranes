@@ -101,20 +101,22 @@ class Scanner:
         if patterns_path:
             self._load_patterns(patterns_path)
         else:
-            # Load built-in patterns with robust path resolution
+            # Load built-in patterns
             # 1. Check environment variable (useful for Docker/ConfigMaps)
             env_path = os.getenv("MEMBRANES_PATTERNS_PATH")
-            # 2. Check package directory (installed mode)
+            # 2. Use package-relative path (works in both dev and installed modes)
             pkg_path = Path(__file__).parent / "injection_patterns.yaml"
-            # 3. Check source directory (dev mode)
-            src_path = Path(__file__).parent.parent.parent / "patterns" / "injection_patterns.yaml"
 
             if env_path and Path(env_path).exists():
                 self._load_patterns(env_path)
             elif pkg_path.exists():
                 self._load_patterns(str(pkg_path))
-            elif src_path.exists():
-                self._load_patterns(str(src_path))
+            else:
+                raise FileNotFoundError(
+                    f"Could not find injection_patterns.yaml. "
+                    f"Searched at: {pkg_path}. "
+                    f"Set MEMBRANES_PATTERNS_PATH env var to specify a custom location."
+                )
         
         # Add custom patterns
         if custom_patterns:
