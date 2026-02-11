@@ -4,6 +4,7 @@ membranes.scanner - Core scanning logic
 
 import re
 import hashlib
+import os
 import unicodedata
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
@@ -100,10 +101,20 @@ class Scanner:
         if patterns_path:
             self._load_patterns(patterns_path)
         else:
-            # Load built-in patterns
-            builtin_path = Path(__file__).parent.parent.parent / "patterns" / "injection_patterns.yaml"
-            if builtin_path.exists():
-                self._load_patterns(str(builtin_path))
+            # Load built-in patterns with robust path resolution
+            # 1. Check environment variable (useful for Docker/ConfigMaps)
+            env_path = os.getenv("MEMBRANES_PATTERNS_PATH")
+            # 2. Check package directory (installed mode)
+            pkg_path = Path(__file__).parent / "injection_patterns.yaml"
+            # 3. Check source directory (dev mode)
+            src_path = Path(__file__).parent.parent.parent / "patterns" / "injection_patterns.yaml"
+
+            if env_path and Path(env_path).exists():
+                self._load_patterns(env_path)
+            elif pkg_path.exists():
+                self._load_patterns(str(pkg_path))
+            elif src_path.exists():
+                self._load_patterns(str(src_path))
         
         # Add custom patterns
         if custom_patterns:
