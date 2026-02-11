@@ -1,2 +1,0 @@
-[console_scripts]
-membranes = membranes.cli:main
