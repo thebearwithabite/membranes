@@ -120,6 +120,18 @@ class TestScanner:
         assert "is_safe" in json_str
         assert "threats" in json_str
 
+    def test_scanner_loads_builtin_patterns(self):
+        """Scanner should auto-load patterns from package when no path specified.
+        
+        This test verifies that the path fix works correctly:
+        - Patterns should be loaded from src/membranes/injection_patterns.yaml
+        - No FileNotFoundError should be raised
+        - Should work with pip install (not just editable mode)
+        """
+        scanner = Scanner()  # No patterns_path argument
+        assert len(scanner.patterns) > 0, "Built-in patterns should be loaded automatically"
+        assert scanner.compound_threats is not None, "Compound threats should be loaded"
+
 
 class TestSanitizer:
     """Test the Sanitizer class."""
