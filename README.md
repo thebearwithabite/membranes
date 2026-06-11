@@ -1,9 +1,6 @@
 # 🛡️ membranes
 
-[![PyPI version](https://img.shields.io/pypi/v/membranes?color=blue)](https://pypi.org/project/membranes/)
-[![Python versions](https://img.shields.io/pypi/pyversions/membranes)](https://pypi.org/project/membranes/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/github/actions/workflow/status/thebearwithabite/membranes/tests.yml?label=tests)](https://github.com/thebearwithabite/membranes/actions)
+
 
 **The VirusTotal for prompt injection — open-source defense with crowdsourced threat intelligence.**
 
