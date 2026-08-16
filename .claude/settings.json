@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"ELEVENLABS_API_KEY=$(gcloud secrets versions access latest --secret=elevenlabs_api_key --project=178486690158 2>/dev/null)\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
