@@ -103,7 +103,7 @@ const audio = await elevenlabs.textToSpeech.convert("<VOICE_ID>", {
   ],
 });
 
-play(audio);
+await play(audio);
 ```
 
 ---
@@ -156,6 +156,7 @@ play(combined)
 ```typescript
 import { ElevenLabsClient, play } from "@elevenlabs/elevenlabs-js";
 import { Readable } from "node:stream";
+import { Buffer } from "node:buffer";
 
 const elevenlabs = new ElevenLabsClient();
 
@@ -187,7 +188,7 @@ for (const paragraph of paragraphs) {
 }
 
 const combinedStream = Readable.from(Buffer.concat(audioBuffers));
-play(combinedStream);
+await play(combinedStream);
 ```
 
 ---
@@ -204,10 +205,11 @@ from io import BytesIO
 
 elevenlabs = ElevenLabs()
 
-voice = elevenlabs.voices.ivc.create(
-    name="My Voice Clone",
-    files=[BytesIO(open("/path/to/audio.mp3", "rb").read())],
-)
+with open("/path/to/audio.mp3", "rb") as f:
+    voice = elevenlabs.voices.ivc.create(
+        name="My Voice Clone",
+        files=[BytesIO(f.read())],
+    )
 
 print(voice.voice_id)
 ```
@@ -302,8 +304,9 @@ console.log(voice.voiceId);
 
 ## 5. Voice Remixing
 
-Remix an existing voice with a new prompt. Only works with designed voices, IVC,
-PVC, and Voice Library voices with infinite notice periods.
+Remix an existing voice with a new prompt. Only works with designed voices, IVC
+(Instant Voice Clone), PVC (Professional Voice Clone), and Voice Library voices
+with infinite notice periods.
 
 ### Python
 
